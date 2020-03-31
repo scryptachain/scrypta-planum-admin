@@ -32,15 +32,15 @@
                         {{ props.row.id }}
                     </b-table-column>
 
-                    <b-table-column field="id" label="Filtro" width="40" sortable searchable>
+                    <b-table-column field="filter" label="Filtro" width="40" sortable searchable>
                         {{ props.row.filter }}
                     </b-table-column>
 
-                    <b-table-column field="user.name" label="Nome" searchable sortable>
+                    <b-table-column field="name" label="Nome" searchable sortable>
                         {{ props.row.name }}
                     </b-table-column>
 
-                    <b-table-column field="user.name" label="Indirizzo" searchable sortable>
+                    <b-table-column field="address" label="Indirizzo" searchable sortable>
                         {{ props.row.address }}
                     </b-table-column>
 

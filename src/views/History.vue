@@ -27,37 +27,23 @@
 
             <template slot-scope="props">
 
-                <b-table-column label="Indirizzo di partenza" width="40" sortable searchable>
-                  <span v-if="props.row.from === user.identity.address">
-                    AMMINISTRATORE
-                  </span>
-                  <span v-if="props.row.from !== user.identity.address && props.row.from !== user.address">
-                    {{ props.row.from }}
-                  </span>
+                <b-table-column field="from" label="Indirizzo di partenza" width="40" sortable searchable>
+                  {{ props.row.from }}
                 </b-table-column>
 
-                <b-table-column label="Indirizzo di destinazione" searchable sortable>
-                  <span v-if="props.row.to === user.identity.address">
-                    AMMINISTRATORE
-                  </span>
-                  <span v-if="props.row.to === user.address">
-                    <span v-if="user.name !== ''">{{ user.name }}</span>
-                    <span v-if="user.name === ''">Utente</span>
-                  </span>
-                  <span v-if="props.row.to !== user.identity.address && props.row.to !== user.address">
-                    {{ props.row.to }}
-                  </span>
+                <b-table-column field="to" label="Indirizzo di destinazione" searchable sortable>
+                  {{ props.row.to }}
                 </b-table-column>
 
-                <b-table-column label="Ammontare" searchable sortable>
+                <b-table-column label="Ammontare" sortable>
                     {{ props.row.amount }} {{ user.owner[user.chain].genesis.symbol }}
                 </b-table-column>
 
-                <b-table-column label="Identificativo transazione" sortable>
+                <b-table-column field="sxid" label="Identificativo transazione" searchable sortable>
                     {{ props.row.sxid.substr(0,4) }}...{{ props.row.sxid.substr(-4) }}
                 </b-table-column>
 
-                <b-table-column label="Blocco" searchable sortable>
+                <b-table-column label="Blocco" sortable>
                     {{ props.row.block }}
                 </b-table-column>
             </template>
@@ -90,6 +76,7 @@ export default {
       db: new ScryptaDB(true, ['users', 'settings']),
       scrypta: new ScryptaCore(true),
       users: [],
+      parsedUsers: {},
       isPaginated: true,
       isPaginationSimple: false,
       paginationPosition: 'bottom',
@@ -121,6 +108,15 @@ export default {
     const app = this;
     app.user = await User.auth()
     app.users = await app.db.get('users')
+    app.parsedUsers[app.user.identity.address] = 'AMMINISTRATORE'
+    for(let x in app.users){
+      let uu = app.users[x]
+      if(uu.name !== ''){
+        app.parsedUsers[uu.address] = uu.name 
+      }else{
+        app.parsedUsers[uu.address] = uu.address 
+      }
+    }
     let response = await app.scrypta.post('/sidechain/scan', { sidechain_address: app.user.chain })
     let transactions = [];
     for (let x in response.data) {
@@ -152,6 +148,12 @@ export default {
           Block = response.data[x].block
         }else{
           Block = 'unconfirmed'
+        }
+        if(app.parsedUsers[from] !== undefined && app.parsedUsers[from] !== from){
+          from = app.parsedUsers[from]
+        }
+        if(app.parsedUsers[to] !== undefined && app.parsedUsers[to] !== to){
+          to = app.parsedUsers[to]
         }
         let transaction = {
           sxid: response.data[x].sxid,

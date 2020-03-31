@@ -56,7 +56,7 @@
 
             <template slot-scope="props">
 
-                <b-table-column label="Indirizzo di partenza" width="40" sortable searchable>
+                <b-table-column field="from" label="Indirizzo di partenza" width="40" sortable searchable>
                   <span v-if="props.row.from === owner.identity.address">
                     AMMINISTRATORE
                   </span>
@@ -69,7 +69,7 @@
                   </span>
                 </b-table-column>
 
-                <b-table-column label="Indirizzo di destinazione" searchable sortable>
+                <b-table-column field="to" label="Indirizzo di destinazione" searchable sortable>
                   <span v-if="props.row.to === owner.identity.address">
                     AMMINISTRATORE
                   </span>
@@ -82,15 +82,15 @@
                   </span>
                 </b-table-column>
 
-                <b-table-column label="Ammontare" searchable sortable>
+                <b-table-column label="Ammontare" sortable>
                     {{ props.row.amount }} {{ owner.owner[owner.chain].genesis.symbol }}
                 </b-table-column>
 
-                <b-table-column label="Identificativo transazione" searchable sortable>
+                <b-table-column field="sxid" label="Identificativo transazione" searchable sortable>
                     {{ props.row.sxid }}
                 </b-table-column>
 
-                <b-table-column label="Blocco" searchable sortable>
+                <b-table-column label="Blocco" sortable>
                     {{ props.row.block }}
                 </b-table-column>
             </template>
@@ -118,6 +118,8 @@
         amountLyra: 0,
         amountAsset: 0,
         transactions: [],
+        users: [],
+        parsedUsers: [],
         isPaginated: true,
         isPaginationSimple: false,
         paginationPosition: 'bottom',
@@ -150,8 +152,27 @@
       app.assetBalance = assetBalance.balance
       let lyraBalance = await app.scrypta.get('/balance/' + app.user.address)
       app.lyraBalance = lyraBalance.balance
+
+      app.users = await app.db.get('users')
+      app.parsedUsers[app.owner.identity.address] = 'AMMINISTRATORE'
+      for(let x in app.users){
+        let uu = app.users[x]
+        if(uu.name !== ''){
+          app.parsedUsers[uu.address] = uu.name 
+        }else{
+          app.parsedUsers[uu.address] = uu.address 
+        }
+      }
       let transactions = await app.scrypta.post('/sidechain/transactions', { dapp_address: app.user.address, sidechain_address: app.owner.chain })
       app.transactions = transactions.transactions
+      for(let x in app.transactions){
+        if(app.parsedUsers[app.transactions[x].from] !== undefined && app.parsedUsers[app.transactions[x].from] !== app.transactions[x].from){
+          app.transactions[x].from = app.parsedUsers[app.transactions[x].from]
+        }
+        if(app.parsedUsers[app.transactions[x].to] !== undefined && app.parsedUsers[app.transactions[x].to] !== app.transactions[x].to){
+          app.transactions[x].to = app.parsedUsers[app.transactions[x].to]
+        }
+      }
     },
     methods: {
       async sendAssetToUser(){
