@@ -9,9 +9,9 @@
           </template>
           <template slot="start">
             <b-navbar-item href="/#/">Home</b-navbar-item>
-            <b-navbar-item href="/#/settings">Impostazioni</b-navbar-item>
-            <b-navbar-item href="/#/card">Controlla card</b-navbar-item>
+            <b-navbar-item href="/#/users">Gestione utenti</b-navbar-item>
             <b-navbar-item href="/#/history">Storico transazioni</b-navbar-item>
+            <b-navbar-item href="/#/settings">Impostazioni</b-navbar-item>
           </template>
 
           <template slot="end">
@@ -31,13 +31,16 @@
         <img src="/planum.png" width="15%" /><br><br>
         <h1>Effettua il login con un account<br>proprietario di una sidechain Planum</h1><br>
         <p>Per poter amministrare una sidechain devi collegarti come proprietario</p>
-        <b-upload v-model="file" v-on:input="loadWalletFromFile" drag-drop>
+        <b-upload v-model="file" v-on:input="loadWalletFromFile" v-if="!isLogging" drag-drop>
           <section class="section">
             <div class="content has-text-centered">
               <p>Trascina il tuo file .sid qui o clicca per caricare.</p>
             </div>
           </section>
         </b-upload>
+        <div v-if="isLogging">
+          Login in corso...
+        </div>
       </div>
     </div>
     <div class="text-center">
@@ -63,7 +66,7 @@ export default {
       scrypta: new ScryptaCore(true),
       address: "",
       wallet: "",
-      isLogging: true,
+      isLogging: false,
       showScanModal: false,
       file: [],
       isCreating: false,
@@ -88,49 +91,15 @@ export default {
     }
   },
   methods: {
-    hideScanModal() {
-      const app = this
-      app.showScanModal = false
-    },
-    onDecode (decodedString) {
-      const app = this
-      app.showScanModal = false
-      var dataKey = decodedString
-
-      app.$buefy.dialog.prompt({
-        message: `Enter wallet password`,
-        inputAttrs: {
-          type: "password"
-        },
-        trapFocus: false,
-        onConfirm: async password => {
-          let key = await app.scrypta.readKey(password, dataKey);
-          if (key !== false) {
-            app.scrypta.importPrivateKey(key.prv, password);
-            localStorage.setItem("SID", dataKey);
-            location.reload();
-          } else {
-            app.$buefy.toast.open({
-              message: "Wrong password!",
-              type: "is-danger"
-            });
-          }
-        }
-      });
-    },
-    showScan(){
-      const app = this
-      app.showScanModal = true
-    },
     loadWalletFromFile() {
       const app = this;
       const file = app.file;
       const reader = new FileReader();
       reader.onload = function() {
         var dataKey = reader.result;
-
+        app.isLogging = true
         app.$buefy.dialog.prompt({
-          message: `Enter wallet password`,
+          message: `Inserisci la password del wallet`,
           inputAttrs: {
             type: "password"
           },
@@ -138,10 +107,29 @@ export default {
           onConfirm: async password => {
             let key = await app.scrypta.readKey(password, dataKey);
             if (key !== false) {
-              app.scrypta.importPrivateKey(key.prv, password);
-              localStorage.setItem("SID", dataKey);
-              location.reload();
+              let isOwner = false
+              let exp = dataKey.split(':')
+              let address = exp[0]
+              let sidechains = await app.scrypta.get('/sidechain/list')
+              for(let x in sidechains.data){
+                let sidechain = sidechains.data[x]
+                if(sidechain.genesis.owner === address){
+                  isOwner = true
+                }
+              }
+              if(isOwner){
+                app.scrypta.importPrivateKey(key.prv, password);
+                localStorage.setItem("SID", dataKey);
+                location.reload();
+              }else{
+                app.isLogging = false
+                app.$buefy.toast.open({
+                  message: "Sembra che tu non sia proprietario di nessuna blockchain!",
+                  type: "is-danger"
+                });
+              }
             } else {
+              app.isLogging = false
               app.$buefy.toast.open({
                 message: "Wrong password!",
                 type: "is-danger"
@@ -152,52 +140,9 @@ export default {
       };
       reader.readAsText(file);
     },
-    showCreate() {
-      const app = this;
-      app.showCreateModal = true;
-    },
     logout() {
       localStorage.setItem("SID", "");
       location.reload();
-    },
-    async createUser() {
-      const app = this;
-      if (app.password !== "") {
-        if (app.passwordrepeat === app.password) {
-          app.isCreating = true;
-          setTimeout(async function() {
-            let id = await app.scrypta.createAddress(app.password, true);
-            let identity = await app.scrypta.returnIdentity(id.pub);
-            app.address = id.pub;
-            app.wallet = identity;
-            localStorage.setItem("SID", id.walletstore);
-            app.showCreateModal = false;
-            app.password = "";
-            app.passwordrepeat = "";
-            let tx = await app.scrypta.post("/init", {
-              address: id.pub,
-              airdrop: true
-            });
-            if (tx.airdrop_tx === false) {
-              app.$buefy.toast.open({
-                message: "Sorry, airdrop was not successful!",
-                type: "is-danger"
-              });
-            }
-            app.isCreating = false;
-          }, 500);
-        } else {
-          app.$buefy.toast.open({
-            message: "Passwords doesn't matches.",
-            type: "is-danger"
-          });
-        }
-      } else {
-        app.$buefy.toast.open({
-          message: "Write a password first!",
-          type: "is-danger"
-        });
-      }
     }
   }
 };
