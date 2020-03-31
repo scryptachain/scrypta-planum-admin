@@ -139,6 +139,36 @@ module.exports = class ScryptaDB {
         }
     }
 
+    async delete(collection, selector, id){
+        const db = this
+        if(db.isBrowser){
+            await db.loadBrowserDB()
+        }else{
+            await db.loadNodeDB()
+        }
+
+        let found = false
+        let updated = []
+        for(let x in db.data[collection]){
+            if(db.data[collection][x][selector] === id){
+                found = true
+            }else{
+                updated.push(db.data[collection][x])
+            }
+        }
+        
+        if(found){
+            if(db.isBrowser){
+                localStorage.setItem(collection, JSON.stringify(updated))
+            }else{
+                db.fs.writeFileSync(db.dir + '/' + collection + '.bson', JSON.stringify(updated))
+            }
+            return true
+        }else{
+            return false
+        }
+    }
+
     async destroy(collection){
         const db = this
         db.data[collection] = []

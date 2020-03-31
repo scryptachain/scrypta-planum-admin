@@ -61,7 +61,7 @@
                             icon="eye">
                         </b-icon>
                       </b-button>
-                      <b-button type="is-primary" style="margin-left:10px;" size="is-small">
+                      <b-button type="is-primary" v-on:click="deleteUser(props.row.id)" style="margin-left:10px;" size="is-small">
                         <b-icon
                             pack="fas"
                             icon="trash">
@@ -210,6 +210,32 @@ export default {
           trapFocus: false,
           customClass: 'fullscreen-modal',
           props: {user: user}
+      })
+    },
+    deleteUser(id) {
+      const app = this
+      app.$buefy.dialog.prompt({
+        message: `Inserisci la password del wallet`,
+        inputAttrs: {
+          type: "password"
+        },
+        trapFocus: false,
+        onConfirm: async password => {
+          let key = await app.scrypta.readKey(password, app.user.identity.wallet);
+          if (key !== false) {
+            await app.db.delete('users','id',id)
+            app.$buefy.toast.open({
+              message: "Utente eliminato correttamente!",
+              type: "is-success"
+            })
+            app.users = await app.db.get('users')
+          }else{
+            app.$buefy.toast.open({
+              message: "Password errata!",
+              type: "is-danger"
+            })
+          }
+        }
       })
     }
   }
