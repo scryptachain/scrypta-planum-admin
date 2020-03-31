@@ -2,7 +2,6 @@
   <div class="main">
     <div class="container">
       <div v-if="user.chain !== '-' && user.owner[user.chain] !== undefined">
-        <v-gravatar :email="user.identity.address" style="float:left; margin-right:20px; width:75px; height:75px;"/>
         <h1>Gestione utenti</h1>
         <h3>{{ user.owner[user.chain].genesis.name }} ({{ user.owner[user.chain].genesis.symbol }})</h3>
         <hr>
