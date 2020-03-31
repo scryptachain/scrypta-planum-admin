@@ -172,6 +172,9 @@
         if(app.parsedUsers[app.transactions[x].to] !== undefined && app.parsedUsers[app.transactions[x].to] !== app.transactions[x].to){
           app.transactions[x].to = app.parsedUsers[app.transactions[x].to]
         }
+        if(app.transactions[x].to === app.owner.chain){
+          app.transactions[x].to = 'BURNED TOKEN'
+        }
       }
     },
     methods: {

@@ -143,11 +143,11 @@ export default {
         from = response.data[x]["address"]
       }
       if(from !== undefined){
-        let Block
+        let block
         if(response.data[x].block > 0){
-          Block = response.data[x].block
+          block = response.data[x].block
         }else{
-          Block = 'unconfirmed'
+          block = 'unconfirmed'
         }
         if(app.parsedUsers[from] !== undefined && app.parsedUsers[from] !== from){
           from = app.parsedUsers[from]
@@ -155,12 +155,15 @@ export default {
         if(app.parsedUsers[to] !== undefined && app.parsedUsers[to] !== to){
           to = app.parsedUsers[to]
         }
+        if(to === app.user.chain){
+          to = 'BURNED TOKEN'
+        }
         let transaction = {
           sxid: response.data[x].sxid,
           amount: value,
           from: from,
           to: to,
-          block: Block
+          block: block
         };
         transactions.push(transaction);
       }
