@@ -58,7 +58,7 @@
 </template>
 
 <script>
-let ScryptaCore = require("@scrypta/core");
+let ScryptaCore = require("@scrypta/core")
 
 export default {
   data() {

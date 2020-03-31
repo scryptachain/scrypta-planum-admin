@@ -1,4 +1,4 @@
-let ScryptaCore = require("@scrypta/core");
+let ScryptaCore = require("@scrypta/core")
 const scrypta = new ScryptaCore(true)
 
 export default {

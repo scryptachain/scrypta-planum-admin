@@ -50,7 +50,7 @@
 </template>
 
 <script>
-let ScryptaCore = require("@scrypta/core");
+let ScryptaCore = require("@scrypta/core")
 import User from '../libs/user.js'
 import ScryptaDB from '../libs/db.js'
 
