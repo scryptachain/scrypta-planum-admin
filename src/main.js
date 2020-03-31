@@ -9,12 +9,12 @@ import Settings from './views/Settings.vue'
 Vue.config.productionTip = true
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faCheck, faCheckCircle, faInfoCircle, faExclamationTriangle, faExclamationCircle,
-    faArrowUp, faAngleRight, faAngleLeft, faAngleDown, faPen, faTrash, 
+    faArrowUp, faAngleRight, faAngleLeft, faAngleDown, faPen, faTrash, faFileCsv,
     faEye, faEyeSlash, faCaretDown, faCaretUp, faUpload } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 
 library.add(faCheck, faCheckCircle, faInfoCircle, faExclamationTriangle, faExclamationCircle,
-    faArrowUp, faAngleRight, faAngleLeft, faAngleDown, faPen, faTrash,
+    faArrowUp, faAngleRight, faAngleLeft, faAngleDown, faPen, faTrash, faFileCsv,
     faEye, faEyeSlash, faCaretDown, faCaretUp, faUpload);
 Vue.component('vue-fontawesome', FontAwesomeIcon)
 Vue.component('home', Home)

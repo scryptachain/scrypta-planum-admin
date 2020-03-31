@@ -71,7 +71,7 @@
 
                 <b-table-column label="Indirizzo di destinazione" searchable sortable>
                   <span v-if="props.row.to === owner.identity.address">
-                    Il tuo account
+                    AMMINISTRATORE
                   </span>
                   <span v-if="props.row.to === user.address">
                     <span v-if="user.name !== ''">{{ user.name }}</span>
@@ -152,7 +152,6 @@
       app.lyraBalance = lyraBalance.balance
       let transactions = await app.scrypta.post('/sidechain/transactions', { dapp_address: app.user.address, sidechain_address: app.owner.chain })
       app.transactions = transactions.transactions
-      console.log(app.transactions)
     },
     methods: {
       async sendAssetToUser(){
