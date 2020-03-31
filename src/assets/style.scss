@@ -48,7 +48,9 @@ body, html, .button{
     cursor:pointer!important;
     opacity:0.4!important;
 }
-
+.fullscreen-modal .modal-close:after, .fullscreen-modal .modal-close:before{
+    background-color:#666!important
+}
 .main{
     min-height: 70vh;
     padding:0 20px;

@@ -138,7 +138,7 @@ export default {
             } else {
               app.isLogging = false
               app.$buefy.toast.open({
-                message: "Wrong password!",
+                message: "Password errata!",
                 type: "is-danger"
               });
             }

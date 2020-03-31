@@ -35,7 +35,7 @@ export default {
             }
           }
         },
-        chain: '',
+        chain: '-',
         identity: {
           address: '',
           wallet: ''

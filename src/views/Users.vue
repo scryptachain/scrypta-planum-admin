@@ -49,13 +49,13 @@
                     </b-table-column>
 
                     <b-table-column label="Azioni" sortable>
-                      <b-button type="is-primary" size="is-small">
+                      <b-button type="is-primary" v-on:click="editUser(props.row)" size="is-small">
                         <b-icon
                             pack="fas"
                             icon="pen">
                         </b-icon>
                       </b-button>
-                      <b-button type="is-primary" style="margin-left:10px;" size="is-small">
+                      <b-button type="is-primary" v-on:click="showUser(props.row)" style="margin-left:10px;" size="is-small">
                         <b-icon
                             pack="fas"
                             icon="eye">
@@ -104,6 +104,8 @@ let ScryptaCore = require("@scrypta/core")
 import User from '../libs/user.js'
 import ScryptaDB from '../libs/db.js'
 const parse = require("csv-parse")
+import UserForm from '../components/UserForm.vue'
+import UserDetails from '../components/UserDetails.vue'
 
 export default {
   data() {
@@ -128,7 +130,7 @@ export default {
             }
           }
         },
-        chain: '',
+        chain: '-',
         identity: {
           address: '',
           wallet: ''
@@ -189,6 +191,26 @@ export default {
         })
       };
       reader.readAsText(file);
+    },
+    editUser(user) {
+      this.$buefy.modal.open({
+          parent: this,
+          component: UserForm,
+          hasModalCard: true,
+          trapFocus: false,
+          props: {user: user}
+      })
+    },
+    showUser(user) {
+      this.$buefy.modal.open({
+          parent: this,
+          component: UserDetails,
+          hasModalCard: true,
+          fullScreen: true,
+          trapFocus: false,
+          customClass: 'fullscreen-modal',
+          props: {user: user}
+      })
     }
   }
 };
