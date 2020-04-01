@@ -263,7 +263,7 @@
                     yy++
                   }
                   if(valid){
-                    app.amountLyra = 0
+                    app.amountAsset = 0
                     app.$buefy.toast.open({
                       message: "Asset inviati correttamente",
                       type: "is-success"
