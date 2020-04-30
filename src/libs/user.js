@@ -21,6 +21,8 @@ export default {
 
         if(localStorage.getItem('chain') !== null){
             selected = localStorage.getItem('chain')
+        }else if(localStorage.getItem('chain') === null){
+            localStorage.setItem('chain', selected)
         }
 
         return {
