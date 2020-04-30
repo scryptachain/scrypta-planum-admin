@@ -13,26 +13,46 @@
               <h1>Nome: <span style="font-weight:normal">{{ user.name }}</span></h1>
               <h1>Filtro: <span style="font-weight:normal">{{ user.filter }}</span></h1>
               <h1>Identificativo: <span style="font-weight:normal">{{ user.identifier }}</span></h1>
-              <h1>Bilancio asset: <span style="font-weight:normal">{{ assetBalance }} {{ owner.owner[owner.chain].genesis.symbol }}</span></h1>
+              <h1>Bilancio {{ owner.owner[owner.chain].genesis.symbol }}: <span style="font-weight:normal">{{ assetBalance }} {{ owner.owner[owner.chain].genesis.symbol }}</span></h1>
               <h1>Bilancio Lyra: <span style="font-weight:normal">{{ lyraBalance }} LYRA</span></h1>
             </div>
+            
             <div class="column">
-              <h1>Invia fondi all'utente</h1>
-              <b-field label="Inserisci quantità di LYRA da inviare">
-                  <b-input
-                      type="text"
-                      v-model="amountLyra"
-                      required>
-                  </b-input>
-              </b-field>
-              <b-field :label="'Inserisci quantità di ' + owner.owner[owner.chain].genesis.symbol + ' da inviare'">
-                  <b-input
-                      type="text"
-                      v-model="amountAsset"
-                      required>
-                  </b-input>
-              </b-field>
-              <button class="button is-primary" v-on:click="sendAssetToUser">INVIA ORA</button>
+              <b-tabs v-model="activeTab" :animated="false">
+                <b-tab-item label="Invia fondi">
+                  <h1>Invia fondi all'utente</h1>
+                  <b-field label="Inserisci quantità di LYRA da inviare">
+                      <b-input
+                          type="text"
+                          v-model="amountLyra"
+                          required>
+                      </b-input>
+                  </b-field>
+                  <b-field :label="'Inserisci quantità di ' + owner.owner[owner.chain].genesis.symbol + ' da inviare'">
+                      <b-input
+                          type="text"
+                          v-model="amountAsset"
+                          required>
+                      </b-input>
+                  </b-field>
+                  <button class="button is-primary" v-on:click="sendAssetToUser">INVIA ORA</button>
+                </b-tab-item>
+                <b-tab-item label="Preleva fondi">
+                  <h1>Preleva fondi</h1>
+                  <b-field :label="'Inserisci quantità di ' + owner.owner[owner.chain].genesis.symbol + ' da prelevare'">
+                      <b-input
+                          type="text"
+                          v-model="amountWithdraw"
+                          required>
+                      </b-input>
+                  </b-field>
+                  <button class="button is-primary" v-on:click="withdrawAssetFromUser">PRELEVA ORA</button><br><br>
+                  <span style="color:#f00">
+                    Attenzione, verrà richiesto di inserire il PIN della card associata e non quello dell'utente amministratore. 
+                    I fondi verranno inviati all'indirizzo dell'utente amministratore e saranno disponibili al primo blocco successivo.
+                  </span>
+                </b-tab-item>
+              </b-tabs>
             </div>
           </div>
           <hr>
@@ -127,6 +147,7 @@
         sortIcon: 'arrow-up',
         sortIconSize: 'is-small',
         currentPage: 1,
+        amountWithdraw: 0,
         perPage: 15,
         owner: {
           owner: {
@@ -292,6 +313,79 @@
         }else{
           app.$buefy.toast.open({
             message: "L'ammontare di Lyra o di asset deve essere maggiore di zero.",
+            type: "is-danger"
+          })
+        }
+      },
+      async withdrawAssetFromUser(){
+        const app = this
+        if(app.amountWithdraw > 0){
+          app.$buefy.dialog.prompt({
+          message: `Inserisci la password del wallet`,
+          inputAttrs: {
+            type: "password"
+          },
+          trapFocus: false,
+          onConfirm: async password => {
+            let key = await app.scrypta.readKey(password, app.user.sid);
+            if (key !== false) {
+              // PRELEVO ASSET
+              let amountAssetFixed = parseFloat(parseFloat(app.amountWithdraw).toFixed(app.owner.owner[app.owner.chain].genesis.decimals))
+              if(amountAssetFixed > 0){
+                let userBalance = await app.scrypta.post('/sidechain/balance', { dapp_address: app.user.address, sidechain_address: app.owner.chain })
+                if(userBalance.balance >= amountAssetFixed){
+                  let sendsuccess = false
+                  let valid = false
+                  let yy = 0
+                  while(sendsuccess === false){
+                    let send = await app.scrypta.post('/sidechain/send',{
+                        from: app.user.address, 
+                        sidechain_address: app.owner.chain,
+                        private_key: key.prv,
+                        pubkey: key.key,
+                        to: app.owner.identity.address,
+                        amount: amountAssetFixed
+                    })
+                    if(send.uuid !== undefined && send.txs.length === 1 && send.txs[0].length === 64){
+                      sendsuccess = true
+                      valid = true
+                    }
+                    if(yy > 19){
+                      valid = false
+                      sendsuccess = true
+                    }
+                    yy++
+                  }
+                  if(valid){
+                    app.amountAsset = 0
+                    app.$buefy.toast.open({
+                      message: "Asset inviati correttamente",
+                      type: "is-success"
+                    })
+                  }else{
+                    app.$buefy.toast.open({
+                      message: "Invio fallito, si prega di riprovare",
+                      type: "is-danger"
+                    })
+                  }
+                }else{
+                  app.$buefy.toast.open({
+                    message: "Non hai abbastanza fondi!",
+                    type: "is-danger"
+                  });
+                }
+              }
+            } else {
+              app.$buefy.toast.open({
+                message: "Password errata!",
+                type: "is-danger"
+              });
+            }
+          }
+        });
+        }else{
+          app.$buefy.toast.open({
+            message: "L'ammontare asset da prelevare deve essere maggiore di zero.",
             type: "is-danger"
           })
         }
