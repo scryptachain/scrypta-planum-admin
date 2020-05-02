@@ -35,7 +35,8 @@
                           required>
                       </b-input>
                   </b-field>
-                  <button class="button is-primary" v-on:click="sendAssetToUser">INVIA ORA</button>
+                  <button class="button is-primary" v-if="!isSending" v-on:click="sendAssetToUser">INVIA ORA</button>
+                  <div v-if="isSending">Invio in corso...</div>
                 </b-tab-item>
                 <b-tab-item label="Preleva fondi">
                   <h1>Preleva fondi</h1>
@@ -137,10 +138,12 @@
         lyraBalance: 0,
         amountLyra: 0,
         amountAsset: 0,
+        isSending: false,
         transactions: [],
         users: [],
         parsedUsers: [],
         isPaginated: true,
+        activeTab: 0,
         isPaginationSimple: false,
         paginationPosition: 'bottom',
         defaultSortDirection: 'asc',
@@ -169,36 +172,43 @@
     async mounted() {
       const app = this
       app.owner = await User.auth()
-      let assetBalance = await app.scrypta.post('/sidechain/balance', { dapp_address: app.user.address, sidechain_address: app.owner.chain })
-      app.assetBalance = assetBalance.balance
-      let lyraBalance = await app.scrypta.get('/balance/' + app.user.address)
-      app.lyraBalance = lyraBalance.balance
-
-      app.users = await app.db.get('users')
-      app.parsedUsers[app.owner.identity.address] = 'AMMINISTRATORE'
-      for(let x in app.users){
-        let uu = app.users[x]
-        if(uu.name !== ''){
-          app.parsedUsers[uu.address] = uu.name 
-        }else{
-          app.parsedUsers[uu.address] = uu.address 
-        }
-      }
-      let transactions = await app.scrypta.post('/sidechain/transactions', { dapp_address: app.user.address, sidechain_address: app.owner.chain })
-      app.transactions = transactions.transactions
-      for(let x in app.transactions){
-        if(app.parsedUsers[app.transactions[x].from] !== undefined && app.parsedUsers[app.transactions[x].from] !== app.transactions[x].from){
-          app.transactions[x].from = app.parsedUsers[app.transactions[x].from]
-        }
-        if(app.parsedUsers[app.transactions[x].to] !== undefined && app.parsedUsers[app.transactions[x].to] !== app.transactions[x].to){
-          app.transactions[x].to = app.parsedUsers[app.transactions[x].to]
-        }
-        if(app.transactions[x].to === app.owner.chain){
-          app.transactions[x].to = 'BURNED TOKEN'
-        }
-      }
+      app.fetchInformations()
+      setInterval(function(){
+        app.fetchInformations()
+      }, 15000)
     },
     methods: {
+      async fetchInformations(){
+        const app = this
+        let assetBalance = await app.scrypta.post('/sidechain/balance', { dapp_address: app.user.address, sidechain_address: app.owner.chain })
+        app.assetBalance = assetBalance.balance
+        let lyraBalance = await app.scrypta.get('/balance/' + app.user.address)
+        app.lyraBalance = lyraBalance.balance
+
+        app.users = await app.db.get('users')
+        app.parsedUsers[app.owner.identity.address] = 'AMMINISTRATORE'
+        for(let x in app.users){
+          let uu = app.users[x]
+          if(uu.name !== ''){
+            app.parsedUsers[uu.address] = uu.name 
+          }else{
+            app.parsedUsers[uu.address] = uu.address 
+          }
+        }
+        let transactions = await app.scrypta.post('/sidechain/transactions', { dapp_address: app.user.address, sidechain_address: app.owner.chain })
+        app.transactions = transactions.transactions
+        for(let x in app.transactions){
+          if(app.parsedUsers[app.transactions[x].from] !== undefined && app.parsedUsers[app.transactions[x].from] !== app.transactions[x].from){
+            app.transactions[x].from = app.parsedUsers[app.transactions[x].from]
+          }
+          if(app.parsedUsers[app.transactions[x].to] !== undefined && app.parsedUsers[app.transactions[x].to] !== app.transactions[x].to){
+            app.transactions[x].to = app.parsedUsers[app.transactions[x].to]
+          }
+          if(app.transactions[x].to === app.owner.chain){
+            app.transactions[x].to = 'BURNED TOKEN'
+          }
+        }
+      },
       async sendAssetToUser(){
         const app = this
         if(app.amountLyra > 0 || app.amountAsset > 0){
@@ -212,6 +222,7 @@
             let key = await app.scrypta.readKey(password, app.owner.identity.wallet);
             if (key !== false) {
               // INVIO LYRA
+              app.isSending = true
               let amountLyraFixed = parseFloat(parseFloat(app.amountLyra).toFixed(8))
               if(amountLyraFixed > 0){
                 let ownerBalance = await app.scrypta.get('/balance/' + app.owner.identity.address)
@@ -220,13 +231,8 @@
                   let valid = false
                   let yy = 0
                   while(sendsuccess === false){
-                    let send = await app.scrypta.post('/send',{
-                      from: app.owner.identity.address,
-                      to: app.user.address,
-                      amount: amountLyraFixed,
-                      private_key: key.prv
-                    })
-                    if(send.data.txid !== undefined && send.data.txid !== null && send.data.txid.length === 64){
+                    let txid = await app.scrypta.send(app.owner.identity.wallet, password, app.user.address, amountLyraFixed)
+                    if(txid !== undefined && txid !== null && txid.length === 64){
                       sendsuccess = true
                       valid = true
                     }
@@ -265,15 +271,9 @@
                   let valid = false
                   let yy = 0
                   while(sendsuccess === false){
-                    let send = await app.scrypta.post('/sidechain/send',{
-                        from: app.owner.identity.address, 
-                        sidechain_address: app.owner.chain,
-                        private_key: key.prv,
-                        pubkey: key.key,
-                        to: app.user.address,
-                        amount: amountAssetFixed
-                    })
-                    if(send.uuid !== undefined && send.txs.length === 1 && send.txs[0].length === 64){
+                    app.scrypta.usePlanum(app.owner.chain)
+                    let send = await app.scrypta.sendPlanumAsset(app.owner.identity.wallet, password, app.user.address, amountAssetFixed)
+                    if(send !== false){
                       sendsuccess = true
                       valid = true
                     }
@@ -302,6 +302,7 @@
                   });
                 }
               }
+              app.isSending = false
             } else {
               app.$buefy.toast.open({
                 message: "Password errata!",
