@@ -47,7 +47,8 @@
                           required>
                       </b-input>
                   </b-field>
-                  <button class="button is-primary" v-on:click="withdrawAssetFromUser">PRELEVA ORA</button><br><br>
+                  <button class="button is-primary" v-if="!isSending" v-on:click="withdrawAssetFromUser">PRELEVA ORA</button>
+                  <div v-if="isSending">Invio in corso...</div><br><br>
                   <span style="color:#f00">
                     Attenzione, verrà richiesto di inserire il PIN della card associata e non quello dell'utente amministratore. 
                     I fondi verranno inviati all'indirizzo dell'utente amministratore e saranno disponibili al primo blocco successivo.
@@ -331,6 +332,7 @@
             let key = await app.scrypta.readKey(password, app.user.sid);
             if (key !== false) {
               // PRELEVO ASSET
+              app.isSending = true
               let amountAssetFixed = parseFloat(parseFloat(app.amountWithdraw).toFixed(app.owner.owner[app.owner.chain].genesis.decimals))
               if(amountAssetFixed > 0){
                 let userBalance = await app.scrypta.post('/sidechain/balance', { dapp_address: app.user.address, sidechain_address: app.owner.chain })
@@ -339,15 +341,9 @@
                   let valid = false
                   let yy = 0
                   while(sendsuccess === false){
-                    let send = await app.scrypta.post('/sidechain/send',{
-                        from: app.user.address, 
-                        sidechain_address: app.owner.chain,
-                        private_key: key.prv,
-                        pubkey: key.key,
-                        to: app.owner.identity.address,
-                        amount: amountAssetFixed
-                    })
-                    if(send.uuid !== undefined && send.txs.length === 1 && send.txs[0].length === 64){
+                    app.scrypta.usePlanum(app.owner.chain)
+                    let send = await app.scrypta.sendPlanumAsset(app.user.sid, password, app.owner.identity.address, amountAssetFixed)
+                    if(send !== false){
                       sendsuccess = true
                       valid = true
                     }
@@ -369,6 +365,7 @@
                       type: "is-danger"
                     })
                   }
+                  app.isSending = false
                 }else{
                   app.$buefy.toast.open({
                     message: "Non hai abbastanza fondi!",
