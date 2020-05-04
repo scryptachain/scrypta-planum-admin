@@ -61,6 +61,7 @@
 
 <script>
 let ScryptaCore = require("@scrypta/core")
+let axios = require('axios')
 
 export default {
   data() {
@@ -74,6 +75,8 @@ export default {
       file: [],
       isCreating: false,
       isUpdating: false,
+      isConnected: false,
+      isConnecting: true,
       showCreateModal: false,
       password: "",
       passwordrepeat: ""
@@ -81,6 +84,7 @@ export default {
   },
   async mounted() {
     const app = this;
+    app.check_online_status()
     app.wallet = await app.scrypta.importBrowserSID();
     app.wallet = await app.scrypta.returnDefaultIdentity();
     if (app.wallet.length > 0) {
@@ -92,11 +96,31 @@ export default {
     } else {
       app.isLogging = false;
     }
+    setInterval(function(){
+      app.check_online_status()
+    }, 5000)
   },
   methods: {
     navigate(page){
       const app = this
       app.route = page
+    },
+    async check_online_status() {
+      const app = this
+      try {
+        app.isConnecting = true
+        let node = await app.scrypta.returnFirstNode()
+        let check = await app.axios.get(node + '/wallet/getinfo')
+        if(check.data.blocks !== undefined){
+          app.isConnected = true
+        }else{
+          app.isConnected = false
+        }
+        app.isConnecting = false
+      }catch(e){
+        app.isConnected = false
+        app.isConnecting = false
+      }
     },
     loadWalletFromFile() {
       const app = this;
