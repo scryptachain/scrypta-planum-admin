@@ -61,7 +61,6 @@
 
 <script>
 let ScryptaCore = require("@scrypta/core")
-let axios = require('axios')
 
 export default {
   data() {
